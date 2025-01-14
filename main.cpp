@@ -309,8 +309,6 @@ void renderProgressBar(SDL_Renderer *renderer, int x, int y, int w, int h, float
     SDL_Rect fg = {x, fY, w, fH};
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
     SDL_RenderFillRect(renderer, &fg);
-
-    SDL_RenderPresent(renderer);
     return;
 }
 
@@ -522,32 +520,35 @@ void saveRecord(SDL_Renderer *renderer, int *points, SDL_Surface *charset, SDL_S
     bool running = true;
 
     SDL_StartTextInput();
+    SDL_Event e;
 
     while(running){
-        SDL_Event e;
         while(SDL_PollEvent(&e)){
             if(e.type == SDL_TEXTINPUT){
                 if(size<20){
                     inputText[size] = e.text.text[0];
                     size++;
-                    SDL_RenderClear(renderer);
-                    DrawString(screen, screen->w / 2 - strlen(inputText) * 8 / 2, 200, inputText, charset);
-                    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
-                    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
-                    SDL_RenderPresent(renderer);
                 }
             }
             else if(e.type == SDL_KEYDOWN){
-                if(e.key.keysym.sym = SDLK_BACKSPACE && size>0){
+                if(e.key.keysym.sym == SDLK_BACKSPACE && size>0){
                     size--;
                     inputText[size] = '\0';
                 }else if(e.key.keysym.sym == SDLK_KP_ENTER || e.key.keysym.sym == SDLK_RETURN){
                     running = false;
+                    break;
                 }
             }
         }
     }
     SDL_StopTextInput();
+    
+    SDL_RenderClear(renderer);
+    DrawString(screen, screen->w / 2 - strlen(inputText) * 8 / 2, 300, inputText, charset);
+    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+    SDL_RenderPresent(renderer);
+
     FILE* save = fopen("ranking.txt", "w");
     if(*points > bestResults[0]){
         for(int i=0; i<size; i++){
@@ -609,8 +610,14 @@ void showRecords(SDL_Renderer *renderer, int *points, SDL_Surface *charset, SDL_
         saveRecord(renderer, points, charset, screen, scrtex);
     }
 
-    return;
+    char endMessage[128];
+    sprintf(endMessage, "Aby zagrać kolejną grę nacisnij n, w przeciwnym wypadku wyjdz klikjac ESC");
+    DrawString(screen, screen->w/ 2 - strlen(endMessage) * 8 / 2, 350, endMessage, charset);
+    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+    SDL_RenderPresent(renderer);
 
+    return;
 };
 
 void game(int *running, SDL_Surface *charset, SDL_Surface *screen, SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *scrtex){

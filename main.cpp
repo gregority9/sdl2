@@ -4,7 +4,6 @@
 #include <string.h>
 #include <cstdlib>
 #include <ctime>
-
 extern "C"{
     #include"SDL2-2.0.10/include/SDL.h"
     #include"SDL2-2.0.10/include/SDL_main.h"
@@ -15,6 +14,11 @@ extern "C"{
 
 #define GRID_SIZE 20
 #define GRID_DIM 800
+
+#define SPEED_UP_TIME 150
+#define MAGIC_CHANCE 10
+#define MAGIC_LIFE 40
+#define SHORTEN_SIZE 2
 
 typedef struct{
     int x, y;
@@ -32,6 +36,7 @@ struct snake {
     int y;
 
     struct snake *next;
+    struct snake *before;
 };
 
 typedef struct snake Snake;
@@ -57,6 +62,7 @@ void initSnake(){
     newSnake->x = GRID_SIZE / 2;
     newSnake->y = GRID_SIZE / 2;
     newSnake->next = NULL;
+    newSnake->before = NULL;
 
     head = newSnake;
     tail = newSnake;
@@ -87,30 +93,34 @@ void renderGrid(SDL_Renderer *renderer, int x, int y){
 }
 
 void setLasts(int snakeDir, int *lastX, int *lastY){
+    printf("5: %u %u\n", *lastX, *lastY);
     switch(snakeDir){
         case SNAKE_UP:
-            *lastY--;
+            (*lastY)--;
             break;
         case SNAKE_DOWN:
-            *lastY++;
+            (*lastY)++;
             break;
         case SNAKE_LEFT:
-            *lastX--;
+            (*lastX)--;
             break;
         case SNAKE_RIGHT:
-            *lastX++;
+            (*lastX)++;
             break;
         default:
-            *lastY--;
+            (*lastY)--;
             break;
     }
+    printf("6: %u %u\n", *lastX, *lastY);
     return;
 }
 
 int possibleRight(int snakeDir, int lastX, int lastY){
     Snake *snake = head;
     snakeDir = (snakeDir+1)%4;
+    printf("1: %u %u\n", lastX, lastY);
     setLasts(snakeDir, &lastX, &lastY);
+    printf("2: %u %u\n", lastX, lastY);
     if(snake->next != NULL) snake = snake->next;
     else return 1;
     while(1){
@@ -139,9 +149,12 @@ void checkOutside(int *snakeDir, int *lastX, int *lastY){
 
     printf("ez, %u %u\n", *lastX, *lastY);
 
+    printf("0: %u %u\n", *lastX, *lastY);
     if(possibleRight(*snakeDir, *lastX, *lastY)){
+        printf("3: %u %u\n", *lastX, *lastY);
         *snakeDir = (*snakeDir+1)%4;
         setLasts(*snakeDir, lastX, lastY);
+        printf("4: %u %u\n", *lastX, *lastY);
     }
     else{
         *snakeDir = (*snakeDir-1)%4;
@@ -173,8 +186,7 @@ int checkCrash(int lastX, int lastY){
     return 0;
 }
 
-
-pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir){
+pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir, int *quit){
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
 
     int cell_size = GRID_DIM / GRID_SIZE;
@@ -224,7 +236,8 @@ pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir){
     }
 
     if(checkCrash(head->x, head->y)){
-        printf("crash");
+        *quit = 1;
+        return {-1, -1};
     }
 
     pos lastPos = {lastX, lastY};
@@ -238,14 +251,15 @@ void growSnake(pos lastPos){
     tail->next->x = lastPos.x;
     tail->next->y = lastPos.y;
     tail->next->next = NULL;
+    tail->next->before = tail;
     tail = tail->next;
 
     return;
 }
 
-void renderApple(SDL_Renderer *renderer, int x, int y, pos *apple, int *points, pos lastPos){
+void renderApple(SDL_Renderer *renderer, int x, int y, pos *apple, int *points, pos lastPos, int *size){
 
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     
     int cell_size = GRID_DIM / GRID_SIZE;
     SDL_Rect cell;
@@ -254,7 +268,8 @@ void renderApple(SDL_Renderer *renderer, int x, int y, pos *apple, int *points, 
 
 
     if(head->x == apple->x && head->y == apple->y){
-        *points++;
+        (*points)++;
+        (*size)++;
         growSnake(lastPos);
         int over = 0;
         Snake *snake = head;
@@ -281,6 +296,42 @@ void renderApple(SDL_Renderer *renderer, int x, int y, pos *apple, int *points, 
     return;
 }
 
+void renderProgressBar(SDL_Renderer *renderer, int x, int y, int w, int h, float fraction){
+    fraction = fraction > 1.f ? 1.f : fraction < 0.f ? 0.f : fraction;
+
+    SDL_Rect bg = {x, y, w, h};
+    SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
+    SDL_RenderFillRect(renderer, &bg);
+
+    int fH = (int)((float)h * fraction);
+    int fY = y + (h - fH);
+
+    SDL_Rect fg = {x, fY, w, fH};
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_RenderFillRect(renderer, &fg);
+
+    SDL_RenderPresent(renderer);
+    return;
+}
+
+void createMagic(pos *magicApple){
+    int over = 0;
+    Snake *snake = head;
+    while(!over){
+        over = 1;
+        magicApple->x = rand()%GRID_SIZE;
+        magicApple->y = rand()%GRID_SIZE;
+        while(1){
+            if(snake->x == magicApple->x && snake->y == magicApple->y){
+                over = 0;
+            }
+            if(snake->next == NULL) break;
+            else snake = snake->next;
+        }
+    }
+    return;
+}
+
 void Draw_Surface(SDL_Surface *screen, SDL_Surface *sprite, int x, int y){
     SDL_Rect dest; //ustawiamy miejsce rysowania
     dest.x = x - sprite->w / 2;
@@ -290,13 +341,404 @@ void Draw_Surface(SDL_Surface *screen, SDL_Surface *sprite, int x, int y){
     SDL_BlitSurface(sprite, NULL, screen, &dest); //[co rysujemy/Ile rysujemy z tego (null-wszystko)/gdzie rysujemy(screen)/koordynaty]
 }
 
+void DrawPixel(SDL_Surface *surface, int x, int y, Uint32 color) {
+	int bpp = surface->format->BytesPerPixel;
+	Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+	*(Uint32 *)p = color;
+};
+
+void DrawLine(SDL_Surface *screen, int x, int y, int l, int dx, int dy, Uint32 color) {
+    // rysowanie linii o d�ugo�ci l w pionie (gdy dx = 0, dy = 1) 
+    // b�d� poziomie (gdy dx = 1, dy = 0)
+    // draw a vertical (when dx = 0, dy = 1) or horizontal (when dx = 1, dy = 0) line
+	for(int i = 0; i < l; i++) {
+		DrawPixel(screen, x, y, color);
+		x += dx;
+		y += dy;
+	};
+};
+
+void DrawRectangle(SDL_Surface *screen, int x, int y, int l, int k, Uint32 outlineColor, Uint32 fillColor) {
+	int i;
+	DrawLine(screen, x, y, k, 0, 1, outlineColor);
+	DrawLine(screen, x + l - 1, y, k, 0, 1, outlineColor);
+	DrawLine(screen, x, y, l, 1, 0, outlineColor);
+	DrawLine(screen, x, y + k - 1, l, 1, 0, outlineColor);
+	for(i = y + 1; i < y + k - 1; i++)
+		DrawLine(screen, x + 1, i, l - 2, 1, 0, fillColor);
+	};
+
+void DrawString(SDL_Surface *screen, int x, int y, const char *text, SDL_Surface *charset) {
+	int px, py, c;
+	SDL_Rect s, d;
+	s.w = 8;
+	s.h = 8;
+	d.w = 8;
+	d.h = 8;
+	while(*text) {
+		c = *text & 255;
+		px = (c % 16) * 8;
+		py = (c / 16) * 8;
+		s.x = px;
+		s.y = py;
+		d.x = x;
+		d.y = y;
+		SDL_BlitSurface(charset, &s, screen, &d);
+		x += 8;
+		text++;
+	};
+};
+
+void renderText(SDL_Surface *screen, SDL_Surface *charset, SDL_Texture *scrtex, SDL_Renderer *renderer, double worldTime, int magicAppleExistence, int gameSpeed, int points){
+    //ustawiamy kolorki
+    char text[128];
+	int czarny = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
+	int zielony = SDL_MapRGB(screen->format, 0x00, 0xFF, 0x00);
+	int czerwony = SDL_MapRGB(screen->format, 0xFF, 0x00, 0x00);
+	int niebieski = SDL_MapRGB(screen->format, 0x11, 0x11, 0xCC);
+    
+    if(magicAppleExistence > 0) sprintf(text, "Czas trwania = %.1lf s   Punkty = %u  MagicApple: pozostało %u s", worldTime, points, magicAppleExistence/(1000/gameSpeed));
+    else sprintf(text, "Czas trwania = %.1lf s    Punkty = %u", worldTime, points);
+
+    DrawRectangle(screen, 4, 4, SCREEN_WIDTH - 8, 36, czerwony, niebieski);
+	DrawString(screen, screen->w / 2 - strlen(text) * 8 / 2, 10, text, charset);
+    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+    //SDL_RenderPresent(renderer);
+
+    return;
+}
+
+int min(int a, int b){
+    if(a<b) return a;
+    else return b;
+}
+
+void magicBonus(int *gameSpeed, int *size){
+    int random = rand()%100;
+    if(*size == 1 || random<50){
+        *gameSpeed *= 1.2;
+    }
+    else{
+        for(int i=0; i<min(SHORTEN_SIZE, (*size)-1); i++){
+            Snake *snake = tail;
+            tail = snake->before;
+            if(tail != NULL){
+                tail->next = NULL;
+            }
+            free(snake);
+        }
+        (*size) -= (min(SHORTEN_SIZE, (*size)-1));
+    }
+}
+
+void renderMagicApple(pos *magicApple, SDL_Renderer *renderer, int x, int y, int *size, pos lastPos, int *magicAppleExistence, int* gameSpeed){
+
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    
+    int cell_size = GRID_DIM / GRID_SIZE;
+    SDL_Rect cell;
+    cell.w = cell_size;
+    cell.h = cell_size;
+
+    cell.x = x + magicApple->x * cell_size;
+    cell.y = y + magicApple->y * cell_size;
+
+    if(head->x == magicApple->x && head->y == magicApple->y){
+        magicBonus(gameSpeed, size);
+        *magicAppleExistence = 0;
+        return;
+    }
+
+    SDL_RenderDrawRect(renderer, &cell);
+    SDL_RenderFillRect(renderer, &cell);
+
+    return;
+}
+
+void loadGame(int *magicAppleExistence, pos *magicApple, pos *apple, int *timeNow, int *startTime, int *gameSpeed, int *points, int *size, int *snakeDir){
+    FILE *load = fopen("save.txt", "r");
+    int worldTime;
+
+    
+    for(int i=0; i<*size; i++){
+        Snake *snake = tail;
+        tail = tail->before;
+        free(snake->before);
+        free(snake->next);
+    }
+
+    fscanf(load, "%d %d %d %d %d %d %d %d %d %d", magicAppleExistence, &magicApple->x, &magicApple->y, &apple->x, &apple->y, &worldTime, gameSpeed, points, size, snakeDir);
+    pos lastPos;
+    fscanf(load, "%d %d", &head->x, &head->y);
+
+    tail = head;
+    for(int i=1; i<*size; i++){
+        fscanf(load, "%d %d", &lastPos.x, &lastPos.y);
+        tail->next = (Snake*)malloc(sizeof(Snake));
+        tail->next->x = lastPos.x;
+        tail->next->y = lastPos.y;
+        tail->next->next = NULL;
+        tail->next->before = tail;
+        tail = tail->next;
+    }
+
+    *startTime = *timeNow - worldTime;
+    return;
+};
+
+void saveGame(int magicAppleExistence, pos magicApple, pos apple, int worldTime, int gameSpeed, int points, int size, int snakeDir){
+    //int magicAppleExistence, pos *magicApple, pos *Apple, Snake *snake (cały), int worldTime, int gameSpeed, int points, int size, int snakeDir
+    FILE *save = fopen("save.txt", "w");
+    fprintf(save, "%d %d %d %d %d %d %d %d %d %d ", magicAppleExistence, magicApple.x, magicApple.y, apple.x, apple.y, worldTime, gameSpeed, points, size, snakeDir);
+    Snake *snake = head;
+    for(int i=0; i<size; i++){
+        fprintf(save, "%d %d ", snake->x, snake->y);
+        snake = snake->next;
+    }
+    fclose(save);
+    return;
+};
+
+void saveRecord(SDL_Renderer *renderer, int *points, SDL_Surface *charset, SDL_Surface *screen, SDL_Texture *scrtex){
+
+    char text1[128];
+    sprintf(text1, "Zakwalifikowales sie do rankingu, podaj swoja nazwe (do 20 znakow) i zatwierdz klawiszem 'Enter'");
+	DrawString(screen, screen->w / 2 - strlen(text1) * 8 / 2, 200, text1, charset);
+    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+    SDL_RenderPresent(renderer);
+
+    FILE *read = fopen("ranking.txt", "r");
+    char names[3][20];
+    int bestResults[3];
+
+    for(int i=0; i<3; i++){
+        fscanf(read, "%s %d", &names[i], &bestResults[i]);
+    }
+    fclose(read);
+    char inputText[21];
+    int size = 0;
+    bool running = true;
+
+    SDL_StartTextInput();
+
+    while(running){
+        SDL_Event e;
+        while(SDL_PollEvent(&e)){
+            if(e.type == SDL_TEXTINPUT){
+                if(size<20){
+                    inputText[size] = e.text.text[0];
+                    size++;
+                    SDL_RenderClear(renderer);
+                    DrawString(screen, screen->w / 2 - strlen(inputText) * 8 / 2, 200, inputText, charset);
+                    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+                    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+                    SDL_RenderPresent(renderer);
+                }
+            }
+            else if(e.type == SDL_KEYDOWN){
+                if(e.key.keysym.sym = SDLK_BACKSPACE && size>0){
+                    size--;
+                    inputText[size] = '\0';
+                }else if(e.key.keysym.sym == SDLK_KP_ENTER || e.key.keysym.sym == SDLK_RETURN){
+                    running = false;
+                }
+            }
+        }
+    }
+    SDL_StopTextInput();
+    FILE* save = fopen("ranking.txt", "w");
+    if(*points > bestResults[0]){
+        for(int i=0; i<size; i++){
+            fprintf(save, "%c", inputText[i]);
+        }
+        fprintf(save, " %d\n", *points);
+    }
+    fprintf(save, "%s %d\n", names[0], bestResults[0]);
+    if(*points > bestResults[1] && *points < bestResults[0]){
+        for(int i=0; i<size; i++){
+            fprintf(save, "%c", inputText[i]);
+        }
+        fprintf(save, " %d\n", *points);
+    }
+    fprintf(save, "%s %d\n", names[1], bestResults[1]);
+    if(*points < bestResults[1]){
+        for(int i=0; i<size; i++){
+            fprintf(save, "%c", inputText[i]);
+        }
+        fprintf(save, " %d\n", *points);
+    }
+    fclose(save);
+    return;
+};
+
+
+void showRecords(SDL_Renderer *renderer, int *points, SDL_Surface *charset, SDL_Surface *screen, SDL_Texture *scrtex){
+    SDL_RenderClear(renderer);
+    FILE *records = fopen("ranking.txt", "r");
+    char names[3][20];
+    int bestResults[3];
+
+    for(int i=0; i<3; i++){
+        fscanf(records, "%s %d", &names[i], &bestResults[i]);
+    }
+
+    char text1[128];
+    char text2[128];
+    char text3[128];
+
+	int czarny = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
+	int zielony = SDL_MapRGB(screen->format, 0x00, 0xFF, 0x00);
+	int czerwony = SDL_MapRGB(screen->format, 0xFF, 0x00, 0x00);
+	int niebieski = SDL_MapRGB(screen->format, 0x11, 0x11, 0xCC);
+    
+    sprintf(text1, "%s:    %d", names[0], bestResults[0]);
+    sprintf(text2, "%s:    %d", names[1], bestResults[1]);
+    sprintf(text3, "%s:    %d", names[2], bestResults[2]);
+
+    DrawRectangle(screen, 4, 4, SCREEN_WIDTH - 8, 400, czerwony, niebieski);
+	DrawString(screen, screen->w / 2 - strlen(text1) * 8 / 2, 20, text1, charset);
+	DrawString(screen, screen->w / 2 - strlen(text2) * 8 / 2, 80, text2, charset);
+	DrawString(screen, screen->w / 2 - strlen(text3) * 8 / 2, 140, text3, charset);
+    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+    SDL_RenderPresent(renderer);
+    fclose(records);
+    if(*points > bestResults[2]){
+        saveRecord(renderer, points, charset, screen, scrtex);
+    }
+
+    return;
+
+};
+
+void game(int *running, SDL_Surface *charset, SDL_Surface *screen, SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *scrtex){
+    SDL_Surface *appleShape, *headShape, *bodyShape, *tailShape;
+    int timeStart, timeNow;
+    int size = 1;
+    SDL_Event event;
+
+    SDL_SetColorKey(charset, true, 0x000000); //ustawiamy, żeby tło było przezroczyste, tzn Snake się pokazywał ponad oknem
+
+
+    timeStart = SDL_GetTicks(); //bierzemy czas początkowy z procesora w mikrosekundach
+
+    int lastTime = timeStart;
+    int quit = 0; //zmienna służąca do zakończenie programu "SNAKE"
+	int czarny = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
+    
+    SDL_FillRect(screen, NULL, czarny);  //ustawienie całego ekranu na czarny (NULL znaczy wszystko)
+    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch); //Updatujemy texture, żeby wyświetlić dane ze zmiennej screen na ekran
+    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+    SDL_RenderPresent(renderer);
+
+    const int grid_x = (SCREEN_WIDTH / 2) - (GRID_DIM / 2);
+    const int grid_y = (SCREEN_HEIGHT / 2) - (GRID_DIM / 2);
+    int points = 0;
+    int speedUp = 0;
+    int GAME_SPEED = 200;
+    double worldTime;
+    srand(time(0));
+    pos app = {0, 0};
+    pos *apple = &app;
+    pos magicApple = {rand()%GRID_SIZE, rand()%GRID_SIZE};
+    apple->x = rand()%GRID_SIZE;
+    apple->y = rand()%GRID_SIZE;
+    int magicAppleExistence = 0;
+    
+    initSnake();
+    int snakeDir = SNAKE_UP;
+
+    while(!quit){
+        while(SDL_PollEvent(&event)){
+            switch(event.type){
+                case SDL_QUIT:
+                    quit = true;
+                    break;
+                case SDL_KEYUP:
+                    break;
+                case SDL_KEYDOWN:
+                    switch(event.key.keysym.sym){
+                        case SDLK_s:
+                            saveGame(magicAppleExistence, magicApple, *apple, worldTime, GAME_SPEED, points, size, snakeDir);
+                            break;
+                        case SDLK_l:
+                            loadGame(&magicAppleExistence, &magicApple, apple, &timeNow, &timeStart, &GAME_SPEED, &points, &size, &snakeDir);
+                            break;
+                        case SDLK_ESCAPE:
+                            quit = true;
+                            *running = 0;
+                            break;
+                        
+                        case SDLK_UP:
+                            if(snakeDir != SNAKE_DOWN) snakeDir = SNAKE_UP;
+                            break;
+                        
+                        case SDLK_DOWN:
+                            if(snakeDir != SNAKE_UP) snakeDir = SNAKE_DOWN;
+                            break;
+                        
+                        case SDLK_RIGHT:
+                            if(snakeDir != SNAKE_LEFT) snakeDir = SNAKE_RIGHT;
+                            break;
+                        
+                        case SDLK_LEFT:
+                            if(snakeDir != SNAKE_RIGHT) snakeDir = SNAKE_LEFT;
+                            break;
+                        case SDLK_n:
+                            quit = true;
+                            game(running, charset, screen, window, renderer, scrtex);
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        timeNow = SDL_GetTicks(); //bierzemy aktualny czas z procesroa w mikrosekundach
+        worldTime = (timeNow - timeStart) * 0.001;
+        pos lastPos;
+
+        //RENDER LOOP START
+
+        if(timeNow-lastTime > GAME_SPEED){
+            if(++speedUp == SPEED_UP_TIME){
+                GAME_SPEED /= 2;
+            }
+            SDL_RenderClear(renderer); //czyścimy renderer
+            renderText(screen, charset, scrtex, renderer, worldTime, magicAppleExistence, GAME_SPEED, points);
+            renderGrid(renderer, grid_x, grid_y);
+            lastPos = renderSnake(renderer, grid_x, grid_y, &snakeDir, &quit);
+            renderApple(renderer, grid_x, grid_y, apple, &points, lastPos, &size);
+            if(magicAppleExistence <= 0){
+                if(rand()%MAGIC_CHANCE == 0){
+                    magicAppleExistence = MAGIC_LIFE;
+                    createMagic(&magicApple);
+                }
+            }
+            else{
+                renderProgressBar(renderer, grid_x + GRID_DIM + 2 * (GRID_DIM/GRID_SIZE), grid_y, GRID_DIM/GRID_SIZE, GRID_DIM, (float)((float)magicAppleExistence/(float)MAGIC_LIFE));
+                renderMagicApple(&magicApple, renderer, grid_x, grid_y, &size, lastPos, &magicAppleExistence, &GAME_SPEED);
+                magicAppleExistence--;
+            }
+            lastTime = timeNow;
+        }   
+
+        //RENDER LOOP END
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); //Ustawiamy kolor renderowania
+        SDL_RenderPresent(renderer);
+    }
+
+    showRecords(renderer, &points, charset, screen, scrtex);
+}
+
+
 #ifdef __cplusplus
 extern "C"
 #endif
 int main(int argc, char **argv){
     
     int rc;
-    int timeStart, timeNow;
 
     SDL_Surface *screen, *charset, *eti;
     SDL_Event event;
@@ -339,106 +781,34 @@ int main(int argc, char **argv){
 		SDL_Quit();
 		return 1;
     }
-    SDL_SetColorKey(charset, true, 0x000000); //ustawiamy, żeby tło było przezroczyste, tzn Snake się pokazywał ponad oknem
 
-    eti = SDL_LoadBMP("./eti.bmp"); //Ładujemy "eti"
-	if(eti == NULL) { //obsługa błedów ładowania obrazu
-		printf("SDL_LoadBMP(eti.bmp) error: %s\n", SDL_GetError());
-		SDL_FreeSurface(charset);
-		SDL_FreeSurface(screen);
-		SDL_DestroyTexture(scrtex);
-		SDL_DestroyWindow(window);
-		SDL_DestroyRenderer(renderer);
-		SDL_Quit();
-		return 1;
-	};
-
-    //ustawiamy kolorki
-    char text[128];
-	int czarny = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
-	int zielony = SDL_MapRGB(screen->format, 0x00, 0xFF, 0x00);
-	int czerwony = SDL_MapRGB(screen->format, 0xFF, 0x00, 0x00);
-	int niebieski = SDL_MapRGB(screen->format, 0x11, 0x11, 0xCC);
-
-    timeStart = SDL_GetTicks(); //bierzemy czas początkowy z procesora w mikrosekundach
-
-    int lastTime = timeStart;
-    int quit = 0; //zmienna służąca do zakończenie programu "SNAKE"
-    
-    SDL_FillRect(screen, NULL, czarny);  //ustawienie całego ekranu na czarny (NULL znaczy wszystko)
-    SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch); //Updatujemy texture, żeby wyświetlić dane ze zmiennej screen na ekran
-    SDL_RenderCopy(renderer, scrtex, NULL, NULL);
-    SDL_RenderPresent(renderer);
-
-    int grid_x = (SCREEN_WIDTH / 2) - (GRID_DIM / 2);
-    int grid_y = (SCREEN_HEIGHT / 2) - (GRID_DIM / 2);
-    int *points = 0;
-    srand(time(0));
-    pos app = {0, 0};
-    pos *apple = &app;
-    apple->x = rand()%GRID_SIZE;
-    apple->y = rand()%GRID_SIZE;
-    
-    initSnake();
-    int snakeDir = SNAKE_UP;
-
-    while(!quit){
+    int running = 1;
+    while(running){
         while(SDL_PollEvent(&event)){
-            switch(event.type){
-                case SDL_QUIT:
-                    quit = true;
+                switch(event.type){
+                    case SDL_QUIT:
+                        running = 0;
+                        break;
+                    case SDL_KEYUP:
+                        break;
+                    case SDL_KEYDOWN:
+                        switch(event.key.keysym.sym){
+                            case SDLK_ESCAPE:
+                                running = 0;
+                                break;
+                            case SDLK_n:
+                                game(&running, charset, screen, window, renderer, scrtex);
+                                break;
+                        }
                     break;
-                case SDL_KEYUP:
-                    break;
-                case SDL_KEYDOWN:
-                    switch(event.key.keysym.sym){
-                        case SDLK_ESCAPE:
-                            quit = true;
-                            break;
-                        
-                        case SDLK_UP:
-                            if(snakeDir != SNAKE_DOWN) snakeDir = SNAKE_UP;
-                            break;
-                        
-                        case SDLK_DOWN:
-                            if(snakeDir != SNAKE_UP) snakeDir = SNAKE_DOWN;
-                            break;
-                        
-                        case SDLK_RIGHT:
-                            if(snakeDir != SNAKE_LEFT) snakeDir = SNAKE_RIGHT;
-                            break;
-                        
-                        case SDLK_LEFT:
-                            if(snakeDir != SNAKE_RIGHT) snakeDir = SNAKE_LEFT;
-                            break;
-                    }
-                    break;
-            }
+                }
         }
-
-
-        timeNow = SDL_GetTicks(); //bierzemy aktualny czas z procesroa w mikrosekundach
-
-        pos lastPos;
-
-        //RENDER LOOP START
-
-        if(timeNow-lastTime > 200){
-            SDL_RenderClear(renderer); //czyścimy renderer
-            renderGrid(renderer, grid_x, grid_y);
-            lastPos = renderSnake(renderer, grid_x, grid_y, &snakeDir);
-            renderApple(renderer, grid_x, grid_y, apple, points, lastPos);
-            lastTime = timeNow;
-        }   
-
-        //RENDER LOOP END
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); //Ustawiamy kolor renderowania
-        SDL_RenderPresent(renderer);
-    }
+    }    
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+    
 
     return 0;
 }

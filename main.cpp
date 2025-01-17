@@ -32,96 +32,91 @@ enum{
     SNAKE_LEFT,
 };
 
-struct snake {
+typedef struct snake {
     int x;
     int y;
 
     struct snake *next;
     struct snake *before;
-};
-
-typedef struct snake Snake;
-
-Snake *head;
-Snake *tail;
+} Snake;
 
 //GRAPHIC DESIGN START
 
-void setCentersHead(int *CX, int *CY, int dirr){
-    const int cs = 0.5 * (GRID_DIM/GRID_SIZE);
-    switch(dirr){
-        case SNAKE_DOWN:
-            *CX += cs; 
-            break;
-        case SNAKE_LEFT:
-            *CX += 2 * cs;  
-            *CY += cs;
-            break;
-        case SNAKE_RIGHT:
-            *CY += cs;
-            break;
-        case SNAKE_UP:
-            *CX += cs;
-            *CY += 2 * cs;
-            break;
-    }
+// void setCentersHead(int *CX, int *CY, int dirr){
+//     const int cs = 0.5 * (GRID_DIM/GRID_SIZE);
+//     switch(dirr){
+//         case SNAKE_DOWN:
+//             *CX += cs; 
+//             break;
+//         case SNAKE_LEFT:
+//             *CX += 2 * cs;  
+//             *CY += cs;
+//             break;
+//         case SNAKE_RIGHT:
+//             *CY += cs;
+//             break;
+//         case SNAKE_UP:
+//             *CX += cs;
+//             *CY += 2 * cs;
+//             break;
+//     }
 
-    return;
-}
+//     return;
+// }
 
-void setCentersLeftEye(int *CX, int *CY, int dirr){
-    switch(dirr){
-        case SNAKE_DOWN:
-            *CX += 0.5 * CS;
-            *CY += 0.25 * CS; 
-            break;
-        case SNAKE_LEFT:
-            *CX -= 0.25 * CS;  
-            *CY += 0.5 * CS;
-            break;
-        case SNAKE_RIGHT:
-            *CX += 0.25 * CS;
-            *CY -= 0.5 * CS;
-            break;
-        case SNAKE_UP:
-            *CX -= 0.5 * CS;
-            *CY -= 0.25 * CS;
-            break;
-    }
-    return;
-}
+// void setCentersLeftEye(int *CX, int *CY, int dirr){
+//     switch(dirr){
+//         case SNAKE_DOWN:
+//             *CX += 0.5 * CS;
+//             *CY += 0.25 * CS; 
+//             break;
+//         case SNAKE_LEFT:
+//             *CX -= 0.25 * CS;  
+//             *CY += 0.5 * CS;
+//             break;
+//         case SNAKE_RIGHT:
+//             *CX += 0.25 * CS;
+//             *CY -= 0.5 * CS;
+//             break;
+//         case SNAKE_UP:
+//             *CX -= 0.5 * CS;
+//             *CY -= 0.25 * CS;
+//             break;
+//     }
+//     return;
+// }
 
-void setCentersRightEye(int *CX, int *CY, int dirr){
-    switch(dirr){
-        case SNAKE_DOWN:
-            *CX -= CS; 
-            break;
-        case SNAKE_LEFT:  
-            *CY -= CS;
-            break;
-        case SNAKE_RIGHT:
-            *CY += CS;
-            break;
-        case SNAKE_UP:
-            *CX += CS;
-            break;
-    }
-    return;
-}
+// void setCentersRightEye(int *CX, int *CY, int dirr){
+//     switch(dirr){
+//         case SNAKE_DOWN:
+//             *CX -= CS; 
+//             break;
+//         case SNAKE_LEFT:  
+//             *CY -= CS;
+//             break;
+//         case SNAKE_RIGHT:
+//             *CY += CS;
+//             break;
+//         case SNAKE_UP:
+//             *CX += CS;
+//             break;
+//     }
+//     return;
+// }
 
-void DrawSemiCircle(SDL_Renderer *renderer, int centerX, int centerY, int radius, int dirr){
-    const int precision = 200;
-    for(int i=0; i<=precision; i++){
-        double angle = (M_PI * i) / precision; // Kąt w radianach 0-pi
-        int x = centerX + radius * cos(angle);
-        int y = centerY + radius * sin(angle);
+// void DrawSemiCircle(SDL_Renderer *renderer, int centerX, int centerY, int radius, int dirr){
+//     const int precision = 200;
+//     for(int i=0; i<=precision; i++){
+//         double angle = (M_PI * i) / precision; // Kąt w radianach 0-pi
+//         int x = centerX + radius * cos(angle);
+//         int y = centerY + radius * sin(angle);
 
-        SDL_RenderDrawLine(renderer, centerX, centerY, x, y);
-    }
-    return;
-}
+//         SDL_RenderDrawLine(renderer, centerX, centerY, x, y);
+//     }
+//     return;
+// }
 
-void DrawCircle(SDL_Renderer *renderer, int centerX, int centerY, int radius, int dirr){
+void DrawCircle(SDL_Renderer *renderer, int centerX, int centerY, int radius){
     const int precision = 400;
     for(int i=0; i<=precision; i++){
         double angle = (2 * M_PI * i) / precision; // Kąt w radianach 0-pi
@@ -133,22 +128,22 @@ void DrawCircle(SDL_Renderer *renderer, int centerX, int centerY, int radius, in
     return;
 }
 
-void renderSnakeHead(SDL_Renderer *renderer, int centerX, int centerY, int radius, int dirr){
-    setCentersHead(&centerX, &centerY, dirr);
-    radius /= 2;
+// void renderSnakeHead(SDL_Renderer *renderer, int centerX, int centerY, int radius, int dirr){
+//     setCentersHead(&centerX, &centerY, dirr);
+//     radius /= 2;
     
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    DrawSemiCircle(renderer, centerX, centerY, radius, dirr);
+//     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+//     DrawSemiCircle(renderer, centerX, centerY, radius, dirr);
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    radius /= 5;
-    setCentersLeftEye(&centerX, &centerY, dirr);
-    DrawCircle(renderer, centerX, centerY, radius, dirr);
+//     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+//     radius /= 5;
+//     setCentersLeftEye(&centerX, &centerY, dirr);
+//     DrawCircle(renderer, centerX, centerY, radius, dirr);
 
-    setCentersRightEye(&centerX, &centerY, dirr);
-    DrawCircle(renderer, centerX, centerY, radius, dirr);
+//     setCentersRightEye(&centerX, &centerY, dirr);
+//     DrawCircle(renderer, centerX, centerY, radius, dirr);
 
-}
+// }
 
 //GRAPHIC DESIGN END
 
@@ -159,7 +154,9 @@ void swap(int *a, int *b){
     return;
 }
 
-void initSnake(){
+void growSnake(pos lastPos, Snake **tail);
+
+void initSnake(Snake **head, Snake **tail){
     Snake *newSnake = (Snake*)malloc(sizeof(Snake));
 
     if(newSnake == NULL){
@@ -172,8 +169,11 @@ void initSnake(){
     newSnake->next = NULL;
     newSnake->before = NULL;
 
-    head = newSnake;
-    tail = newSnake;
+    *head = newSnake;
+    *tail = newSnake;
+
+    growSnake({newSnake->x, newSnake->y+1}, tail);
+    growSnake({newSnake->x, newSnake->y+2}, tail);
 
 
     return;
@@ -201,7 +201,6 @@ void renderGrid(SDL_Renderer *renderer, int x, int y){
 }
 
 void setLasts(int snakeDir, int *lastX, int *lastY){
-    printf("5: %u %u\n", *lastX, *lastY);
     switch(snakeDir){
         case SNAKE_UP:
             (*lastY)--;
@@ -219,16 +218,18 @@ void setLasts(int snakeDir, int *lastX, int *lastY){
             (*lastY)--;
             break;
     }
-    printf("6: %u %u\n", *lastX, *lastY);
     return;
 }
 
-int possibleRight(int snakeDir, int lastX, int lastY){
-    Snake *snake = head;
+int possibleRight(int snakeDir, int lastX, int lastY, Snake **head){
+    printf("%u %u %u\n", snakeDir, lastX, lastY);
+    if((snakeDir == SNAKE_UP && lastX == GRID_SIZE-1) || (snakeDir == SNAKE_DOWN && lastX==0) || (snakeDir == SNAKE_LEFT && lastY == 0) || (snakeDir == SNAKE_RIGHT && lastY == GRID_SIZE-1)){
+        printf("wtf");
+        return 0;
+    }
+    Snake *snake = *head;
     snakeDir = (snakeDir+1)%4;
-    printf("1: %u %u\n", lastX, lastY);
     setLasts(snakeDir, &lastX, &lastY);
-    printf("2: %u %u\n", lastX, lastY);
     if(snake->next != NULL) snake = snake->next;
     else return 1;
     while(1){
@@ -245,9 +246,7 @@ int possibleRight(int snakeDir, int lastX, int lastY){
     return 1;
 }
 
-void checkOutside(int *snakeDir, int *lastX, int *lastY){
-    printf("first: %u\n", *snakeDir);
-    printf("w, %u %u\n", *lastX, *lastY);
+void checkOutside(int *snakeDir, int *lastX, int *lastY, Snake **head){
 
     if(*lastX < 0) (*lastX)++;
     else if(*lastX >= GRID_SIZE) (*lastX)--;
@@ -255,27 +254,24 @@ void checkOutside(int *snakeDir, int *lastX, int *lastY){
     else if(*lastY >= GRID_SIZE) (*lastY)--;
     else return;
 
-    printf("ez, %u %u\n", *lastX, *lastY);
-
-    printf("0: %u %u\n", *lastX, *lastY);
-    if(possibleRight(*snakeDir, *lastX, *lastY)){
-        printf("3: %u %u\n", *lastX, *lastY);
-        *snakeDir = (*snakeDir+1)%4;
+    if(possibleRight(*snakeDir, *lastX, *lastY, head)){
+        *snakeDir = ((*snakeDir)+1)%4;
         setLasts(*snakeDir, lastX, lastY);
-        printf("4: %u %u\n", *lastX, *lastY);
     }
     else{
-        *snakeDir = (*snakeDir-1)%4;
+        *snakeDir = ((*snakeDir)-1)%4;
+        if(*snakeDir < 0) (*snakeDir) += 4;
+        printf("SnakeDir: %d\n", *snakeDir);
         setLasts(*snakeDir, lastX, lastY);
+        printf("lasts: %d %d %d\n", *snakeDir, lastX, lastY);
     }
 
-    printf("snakedir: %u\n", *snakeDir);
     return;
 }
 
-int checkCrash(int lastX, int lastY){
+int checkCrash(int lastX, int lastY, Snake **head){
 
-    Snake *snake = head;
+    Snake *snake = *head;
 
     if(snake->next != NULL) snake = snake->next;
     else return 0;
@@ -294,12 +290,12 @@ int checkCrash(int lastX, int lastY){
     return 0;
 }
 
-pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir, int *quit){
+pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir, int *quit, Snake **head){
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
 
     int cell_size = GRID_DIM / GRID_SIZE;
 
-    Snake *drawSnake = head;
+    Snake *drawSnake = *head;
 
     SDL_Surface *snakeHead;
 
@@ -327,7 +323,7 @@ pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir, int *quit){
             lastY--;
             break;
     }
-    checkOutside(snakeDir, &lastX, &lastY);
+    checkOutside(snakeDir, &lastX, &lastY, head);
 
     while(1){
         swap(&drawSnake->x, &lastX);
@@ -347,7 +343,7 @@ pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir, int *quit){
         }
     }
 
-    if(checkCrash(head->x, head->y)){
+    if(checkCrash((*head)->x, (*head)->y, head)){
         *quit = 1;
         return {-1, -1};
     }
@@ -358,18 +354,18 @@ pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir, int *quit){
     return lastPos;
 }
 
-void growSnake(pos lastPos){
-    tail->next = (Snake*)malloc(sizeof(Snake));
-    tail->next->x = lastPos.x;
-    tail->next->y = lastPos.y;
-    tail->next->next = NULL;
-    tail->next->before = tail;
-    tail = tail->next;
+void growSnake(pos lastPos, Snake **tail){
+    (*tail)->next = (Snake*)malloc(sizeof(Snake));
+    (*tail)->next->x = lastPos.x;
+    (*tail)->next->y = lastPos.y;
+    (*tail)->next->next = NULL;
+    (*tail)->next->before = (*tail);
+    *tail = (*tail)->next;
 
     return;
 }
 
-void renderApple(SDL_Renderer *renderer, int x, int y, pos *apple, int *points, pos lastPos, int *size){
+void renderApple(SDL_Renderer *renderer, int x, int y, pos *apple, int *points, pos lastPos, int *size, Snake **head, Snake **tail){
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     
@@ -379,12 +375,12 @@ void renderApple(SDL_Renderer *renderer, int x, int y, pos *apple, int *points, 
     cell.h = cell_size;
 
 
-    if(head->x == apple->x && head->y == apple->y){
+    if((*head)->x == apple->x && (*head)->y == apple->y){
         (*points)++;
         (*size)++;
-        growSnake(lastPos);
+        growSnake(lastPos, tail);
         int over = 0;
-        Snake *snake = head;
+        Snake *snake = (*head);
         while(!over){
             over = 1;
             apple->x = rand()%GRID_SIZE;
@@ -402,8 +398,7 @@ void renderApple(SDL_Renderer *renderer, int x, int y, pos *apple, int *points, 
     cell.x = x + apple->x * cell_size;
     cell.y = y + apple->y * cell_size;
 
-    SDL_RenderDrawRect(renderer, &cell);
-    SDL_RenderFillRect(renderer, &cell);
+    DrawCircle(renderer, cell.x + cell_size/2, cell.y + cell_size/2, cell_size/4);
 
     return;
 }
@@ -424,9 +419,9 @@ void renderProgressBar(SDL_Renderer *renderer, int x, int y, int w, int h, float
     return;
 }
 
-void createMagic(pos *magicApple){
+void createMagic(pos *magicApple, Snake **head){
     int over = 0;
-    Snake *snake = head;
+    Snake *snake = *head;
     while(!over){
         over = 1;
         magicApple->x = rand()%GRID_SIZE;
@@ -524,17 +519,17 @@ int min(int a, int b){
     else return b;
 }
 
-void magicBonus(int *gameSpeed, int *size){
+void magicBonus(int *gameSpeed, int *size, Snake **tail){
     int random = rand()%100;
     if(*size == 1 || random<50){
         *gameSpeed *= 1.2;
     }
     else{
         for(int i=0; i<min(SHORTEN_SIZE, (*size)-1); i++){
-            Snake *snake = tail;
-            tail = snake->before;
-            if(tail != NULL){
-                tail->next = NULL;
+            Snake *snake = *tail;
+            *tail = snake->before;
+            if(*tail != NULL){
+                (*tail)->next = NULL;
             }
             free(snake);
         }
@@ -542,7 +537,7 @@ void magicBonus(int *gameSpeed, int *size){
     }
 }
 
-void renderMagicApple(pos *magicApple, SDL_Renderer *renderer, int x, int y, int *size, pos lastPos, int *magicAppleExistence, int* gameSpeed){
+void renderMagicApple(pos *magicApple, SDL_Renderer *renderer, int x, int y, int *size, pos lastPos, int *magicAppleExistence, int* gameSpeed, Snake *head, Snake **tail){
 
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     
@@ -555,53 +550,52 @@ void renderMagicApple(pos *magicApple, SDL_Renderer *renderer, int x, int y, int
     cell.y = y + magicApple->y * cell_size;
 
     if(head->x == magicApple->x && head->y == magicApple->y){
-        magicBonus(gameSpeed, size);
+        magicBonus(gameSpeed, size, tail);
         *magicAppleExistence = 0;
         return;
     }
 
-    SDL_RenderDrawRect(renderer, &cell);
-    SDL_RenderFillRect(renderer, &cell);
+    DrawCircle(renderer, cell.x + cell_size/2, cell.y + cell_size/2, cell_size/4);
 
     return;
 }
 
-void loadGame(int *magicAppleExistence, pos *magicApple, pos *apple, int *timeNow, int *startTime, int *gameSpeed, int *points, int *size, int *snakeDir){
+void loadGame(int *magicAppleExistence, pos *magicApple, pos *apple, int *timeNow, int *startTime, int *gameSpeed, int *points, int *size, int *snakeDir, Snake **head, Snake **tail){
     FILE *load = fopen("save.txt", "r");
     int worldTime;
 
     
     for(int i=0; i<*size; i++){
-        Snake *snake = tail;
-        tail = tail->before;
+        Snake *snake = (*tail);
+        *tail = (*tail)->before;
         free(snake->before);
         free(snake->next);
     }
 
     fscanf(load, "%d %d %d %d %d %d %d %d %d %d", magicAppleExistence, &magicApple->x, &magicApple->y, &apple->x, &apple->y, &worldTime, gameSpeed, points, size, snakeDir);
     pos lastPos;
-    fscanf(load, "%d %d", &head->x, &head->y);
+    fscanf(load, "%d %d", &(*head)->x, &(*head)->y);
 
     tail = head;
     for(int i=1; i<*size; i++){
         fscanf(load, "%d %d", &lastPos.x, &lastPos.y);
-        tail->next = (Snake*)malloc(sizeof(Snake));
-        tail->next->x = lastPos.x;
-        tail->next->y = lastPos.y;
-        tail->next->next = NULL;
-        tail->next->before = tail;
-        tail = tail->next;
+        (*tail)->next = (Snake*)malloc(sizeof(Snake));
+        (*tail)->next->x = lastPos.x;
+        (*tail)->next->y = lastPos.y;
+        (*tail)->next->next = NULL;
+        (*tail)->next->before = *tail;
+        *tail = (*tail)->next;
     }
 
     *startTime = *timeNow - worldTime;
     return;
 };
 
-void saveGame(int magicAppleExistence, pos magicApple, pos apple, int worldTime, int gameSpeed, int points, int size, int snakeDir){
+void saveGame(int magicAppleExistence, pos magicApple, pos apple, int worldTime, int gameSpeed, int points, int size, int snakeDir, Snake **head){
     //int magicAppleExistence, pos *magicApple, pos *Apple, Snake *snake (cały), int worldTime, int gameSpeed, int points, int size, int snakeDir
     FILE *save = fopen("save.txt", "w");
     fprintf(save, "%d %d %d %d %d %d %d %d %d %d ", magicAppleExistence, magicApple.x, magicApple.y, apple.x, apple.y, worldTime, gameSpeed, points, size, snakeDir);
-    Snake *snake = head;
+    Snake *snake = *head;
     for(int i=0; i<size; i++){
         fprintf(save, "%d %d ", snake->x, snake->y);
         snake = snake->next;
@@ -739,6 +733,7 @@ void game(int *running, SDL_Surface *charset, SDL_Surface *screen, SDL_Window *w
     int timeStart, timeNow;
     int size = 1;
     SDL_Event event;
+    Snake *head, *tail;
 
     SDL_SetColorKey(charset, true, 0x000000); //ustawiamy, żeby tło było przezroczyste, tzn Snake się pokazywał ponad oknem
 
@@ -767,8 +762,8 @@ void game(int *running, SDL_Surface *charset, SDL_Surface *screen, SDL_Window *w
     apple->x = rand()%GRID_SIZE;
     apple->y = rand()%GRID_SIZE;
     int magicAppleExistence = 0;
-    
-    initSnake();
+    printf("1");
+    initSnake(&head, &tail);
     int snakeDir = SNAKE_UP;
 
     while(!quit){
@@ -782,10 +777,10 @@ void game(int *running, SDL_Surface *charset, SDL_Surface *screen, SDL_Window *w
                 case SDL_KEYDOWN:
                     switch(event.key.keysym.sym){
                         case SDLK_s:
-                            saveGame(magicAppleExistence, magicApple, *apple, worldTime, GAME_SPEED, points, size, snakeDir);
+                            saveGame(magicAppleExistence, magicApple, *apple, worldTime, GAME_SPEED, points, size, snakeDir, &head);
                             break;
                         case SDLK_l:
-                            loadGame(&magicAppleExistence, &magicApple, apple, &timeNow, &timeStart, &GAME_SPEED, &points, &size, &snakeDir);
+                            loadGame(&magicAppleExistence, &magicApple, apple, &timeNow, &timeStart, &GAME_SPEED, &points, &size, &snakeDir, &head, &tail);
                             break;
                         case SDLK_ESCAPE:
                             quit = true;
@@ -829,21 +824,20 @@ void game(int *running, SDL_Surface *charset, SDL_Surface *screen, SDL_Window *w
             SDL_RenderClear(renderer); //czyścimy renderer
             renderText(screen, charset, scrtex, renderer, worldTime, magicAppleExistence, GAME_SPEED, points);
             renderGrid(renderer, grid_x, grid_y);
-            lastPos = renderSnake(renderer, grid_x, grid_y, &snakeDir, &quit);
-            renderApple(renderer, grid_x, grid_y, apple, &points, lastPos, &size);
+            lastPos = renderSnake(renderer, grid_x, grid_y, &snakeDir, &quit, &head);
+            renderApple(renderer, grid_x, grid_y, apple, &points, lastPos, &size, &head, &tail);
             if(magicAppleExistence <= 0){
                 if(rand()%MAGIC_CHANCE == 0){
                     magicAppleExistence = MAGIC_LIFE;
-                    createMagic(&magicApple);
+                    createMagic(&magicApple, &head);
                 }
             }
             else{
                 renderProgressBar(renderer, grid_x + GRID_DIM + 2 * (GRID_DIM/GRID_SIZE), grid_y, GRID_DIM/GRID_SIZE, GRID_DIM, (float)((float)magicAppleExistence/(float)MAGIC_LIFE));
-                renderMagicApple(&magicApple, renderer, grid_x, grid_y, &size, lastPos, &magicAppleExistence, &GAME_SPEED);
+                renderMagicApple(&magicApple, renderer, grid_x, grid_y, &size, lastPos, &magicAppleExistence, &GAME_SPEED, head, &tail);
                 magicAppleExistence--;
             }
             SDL_Surface *xd;
-            renderSnakeHead(renderer, grid_x, grid_y, GRID_DIM/GRID_SIZE, 0);
             lastTime = timeNow;
             SDL_RenderPresent(renderer);
         }   

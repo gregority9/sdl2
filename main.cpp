@@ -14,6 +14,7 @@ extern "C"{
 
 #define GRID_SIZE 20
 #define GRID_DIM 800
+#define CS 20
 
 #define SPEED_UP_TIME 150
 #define MAGIC_CHANCE 10
@@ -43,6 +44,113 @@ typedef struct snake Snake;
 
 Snake *head;
 Snake *tail;
+
+//GRAPHIC DESIGN START
+
+void setCentersHead(int *CX, int *CY, int dirr){
+    const int cs = 0.5 * (GRID_DIM/GRID_SIZE);
+    switch(dirr){
+        case SNAKE_DOWN:
+            *CX += cs; 
+            break;
+        case SNAKE_LEFT:
+            *CX += 2 * cs;  
+            *CY += cs;
+            break;
+        case SNAKE_RIGHT:
+            *CY += cs;
+            break;
+        case SNAKE_UP:
+            *CX += cs;
+            *CY += 2 * cs;
+            break;
+    }
+
+    return;
+}
+
+void setCentersLeftEye(int *CX, int *CY, int dirr){
+    switch(dirr){
+        case SNAKE_DOWN:
+            *CX += 0.5 * CS;
+            *CY += 0.25 * CS; 
+            break;
+        case SNAKE_LEFT:
+            *CX -= 0.25 * CS;  
+            *CY += 0.5 * CS;
+            break;
+        case SNAKE_RIGHT:
+            *CX += 0.25 * CS;
+            *CY -= 0.5 * CS;
+            break;
+        case SNAKE_UP:
+            *CX -= 0.5 * CS;
+            *CY -= 0.25 * CS;
+            break;
+    }
+    return;
+}
+
+void setCentersRightEye(int *CX, int *CY, int dirr){
+    switch(dirr){
+        case SNAKE_DOWN:
+            *CX -= CS; 
+            break;
+        case SNAKE_LEFT:  
+            *CY -= CS;
+            break;
+        case SNAKE_RIGHT:
+            *CY += CS;
+            break;
+        case SNAKE_UP:
+            *CX += CS;
+            break;
+    }
+    return;
+}
+
+void DrawSemiCircle(SDL_Renderer *renderer, int centerX, int centerY, int radius, int dirr){
+    const int precision = 200;
+    for(int i=0; i<=precision; i++){
+        double angle = (M_PI * i) / precision; // Kąt w radianach 0-pi
+        int x = centerX + radius * cos(angle);
+        int y = centerY + radius * sin(angle);
+
+        SDL_RenderDrawLine(renderer, centerX, centerY, x, y);
+    }
+    return;
+}
+
+void DrawCircle(SDL_Renderer *renderer, int centerX, int centerY, int radius, int dirr){
+    const int precision = 400;
+    for(int i=0; i<=precision; i++){
+        double angle = (2 * M_PI * i) / precision; // Kąt w radianach 0-pi
+        int x = centerX + radius * cos(angle);
+        int y = centerY + radius * sin(angle);
+
+        SDL_RenderDrawLine(renderer, centerX, centerY, x, y);
+    }
+    return;
+}
+
+void renderSnakeHead(SDL_Renderer *renderer, int centerX, int centerY, int radius, int dirr){
+    setCentersHead(&centerX, &centerY, dirr);
+    radius /= 2;
+    
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    DrawSemiCircle(renderer, centerX, centerY, radius, dirr);
+
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    radius /= 5;
+    setCentersLeftEye(&centerX, &centerY, dirr);
+    DrawCircle(renderer, centerX, centerY, radius, dirr);
+
+    setCentersRightEye(&centerX, &centerY, dirr);
+    DrawCircle(renderer, centerX, centerY, radius, dirr);
+
+}
+
+//GRAPHIC DESIGN END
 
 void swap(int *a, int *b){
     int c = *a;
@@ -193,6 +301,8 @@ pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir, int *quit){
 
     Snake *drawSnake = head;
 
+    SDL_Surface *snakeHead;
+
     SDL_Rect cell;
     cell.w = cell_size;
     cell.h = cell_size;
@@ -225,6 +335,8 @@ pos renderSnake(SDL_Renderer *renderer, int x, int y, int *snakeDir, int *quit){
 
         cell.x = x + drawSnake->x*cell_size;
         cell.y = y + drawSnake->y*cell_size;
+
+        //renderSnakeHead(renderer, snakeHead, cell.x, cell.y, (GRID_SIZE/GRID_DIM)/2, *snakeDir);
 
         SDL_RenderFillRect(renderer, &cell);
         if(drawSnake->next == NULL){
@@ -620,6 +732,8 @@ void showRecords(SDL_Renderer *renderer, int *points, SDL_Surface *charset, SDL_
     return;
 };
 
+
+
 void game(int *running, SDL_Surface *charset, SDL_Surface *screen, SDL_Window *window, SDL_Renderer *renderer, SDL_Texture *scrtex){
     SDL_Surface *appleShape, *headShape, *bodyShape, *tailShape;
     int timeStart, timeNow;
@@ -728,7 +842,10 @@ void game(int *running, SDL_Surface *charset, SDL_Surface *screen, SDL_Window *w
                 renderMagicApple(&magicApple, renderer, grid_x, grid_y, &size, lastPos, &magicAppleExistence, &GAME_SPEED);
                 magicAppleExistence--;
             }
+            SDL_Surface *xd;
+            renderSnakeHead(renderer, grid_x, grid_y, GRID_DIM/GRID_SIZE, 0);
             lastTime = timeNow;
+            SDL_RenderPresent(renderer);
         }   
 
         //RENDER LOOP END
